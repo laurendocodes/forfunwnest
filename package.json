@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
     "@nestjs/common": "^11.1.26",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.26",
@@ -27,7 +28,9 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.26",
+    "@nestjs/platform-socket.io": "^11.1.27",
     "@nestjs/swagger": "^11.4.4",
+    "@nestjs/websockets": "^11.1.27",
     "@prisma/client": "^6.19.3",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
@@ -36,7 +39,8 @@
     "passport-jwt": "^4.0.1",
     "prisma": "^6.19.3",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "yt-search": "^2.13.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

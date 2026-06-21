@@ -6,31 +6,110 @@
 
 generator client {
   provider = "prisma-client-js"
-
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  
 }
 
-
-
-enum Role{
+enum Role {
   SUPER_ADMIN
   ADMIN
   USER
 }
 
-
 model User {
-  id       Int     @id @default(autoincrement()) 
-  email    String  @unique
-  name     String?
-  password String  
-  role     String  @default("USER")
-  isActive Boolean @default(true)
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  name      String?
+  password  String
+  role      Role      @default(USER) // Changed from String to use your Enum safely
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  // Relations
+  playlists        Playlist[]       @relation("UserPlaylists")
+  userActivity     UserActivity?    // Real-time status stream
+  syncSessionHost  SyncSession[]    @relation("HostSessions")
+  syncSessionGuest SyncSession?     @relation("GuestSession", fields: [currentSessionId], references: [id])
+  currentSessionId Int?
 }
 
+model Track {
+  id          Int      @id @default(autoincrement())
+  youtubeId   String   @unique
+  title       String
+  artistName  String
+  durationMs  Int      // Audio players handle positioning better with milliseconds
+  audioUrl    String   // Points to your secure file storage (S3, Supabase Storage, etc.)
+  coverUrl    String?  // Album art image link
+  createdAt   DateTime @default(now())
 
+  // Relations
+  playlists   PlaylistTrack[] // Many-to-many relation table
+  lyrics      LyricLine[]     // Synced lyrics lines
+}
+
+model Playlist {
+  id          Int      @id @default(autoincrement())
+  name        String
+  isPrivate   Boolean  @default(false)
+  isLikedSongs Boolean @default(false) // Flag to identify the user's "Liked Songs" system playlist
+  userId      Int
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user        User            @relation("UserPlaylists", fields: [userId], references: [id], onDelete: Cascade)
+  tracks      PlaylistTrack[]
+}
+
+// Explicit Join Table for Playlists and Tracks to preserve order/track additions
+// Explicit Join Table for Playlists and Tracks
+model PlaylistTrack {
+  id         Int      @id @default(autoincrement())
+  playlistId Int
+  trackId    Int
+  addedAt    DateTime @default(now())
+
+  // Relations (Fixed syntax here)
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, trackId])
+}
+
+model LyricLine {
+  id          Int      @id @default(autoincrement())
+  trackId     Int
+  text        String   
+  timestampMs Int      
+
+  // Relations (Fixed syntax here)
+  track       Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+}
+
+// For Friend Activity Feeds
+model UserActivity {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  currentTrack String?  
+  isPlaying    Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+
+  // Relations (Fixed syntax here)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+// For Real-time Jam/Synchronization Sessions
+model SyncSession {
+  id           Int      @id @default(autoincrement())
+  roomCode     String   @unique // Code shared to join a session (e.g., "JAM-X92")
+  hostId       Int      @unique
+  currentTrackId Int?
+  progressMs   Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  // Relations
+  host         User     @relation("HostSessions", fields: [hostId], references: [id], onDelete: Cascade)
+  guests       User[]   @relation("GuestSession")
+}
