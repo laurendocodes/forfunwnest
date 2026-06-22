@@ -55,4 +55,22 @@ export class ExternalMusicApiService {
       streamUrl: audioFormat.url, // This is a direct URL that Flutter's audio_player can stream instantly!
     };
   }
+
+  async getTrackDetailsByYoutubeId(youtubeId: string): Promise<ExternalTrack> {
+  const videoUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
+  const info = await ytdl.getInfo(videoUrl);
+  
+  const audioFormat = ytdl.chooseFormat(info.formats, { 
+    quality: 'highestaudio', 
+    filter: 'audioonly' 
+  });
+
+  return {
+    id: youtubeId,
+    title: info.videoDetails.title,
+    artist: info.videoDetails.author.name,
+    durationMs: parseInt(info.videoDetails.lengthSeconds) * 1000,
+    albumArtUrl: info.videoDetails.thumbnails[0]?.url || '',
+    streamUrl: audioFormat.url,
+  };}
 }

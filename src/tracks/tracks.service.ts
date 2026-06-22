@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ExternalMusicApiService } from './external-music-api.service';
 
@@ -52,4 +52,54 @@ export class TracksService {
 
     return savedTracks;
   }
+
+ async getTrackStream(id: string) {
+    let track;
+
+    // 1. Try to find the track in our local DB first
+    // We check both the auto-increment Int ID (if it's a number) or the string youtubeId
+    const isNumberId = !isNaN(Number(id));
+
+    if (isNumberId) {
+      track = await this.prismaService.track.findUnique({
+        where: { id: Number(id) },
+      });
+    } else {
+      track = await this.prismaService.track.findUnique({
+        where: { youtubeId: id },
+      });
+    }
+
+    // 2. CACHE MISS: If track is null, fetch it directly from YouTube using the string ID
+    if (!track) {
+      try {
+        // We call a single video detail extractor from our YouTube service
+        const externalTrack = await this.musicApiService.getTrackDetailsByYoutubeId(id);
+        
+        // Save it to PostgreSQL so it's cached for next time
+        track = await this.prismaService.track.create({
+          data: {
+            youtubeId: externalTrack.id,
+            title: externalTrack.title,
+            artistName: externalTrack.artist,
+            durationMs: externalTrack.durationMs,
+            audioUrl: externalTrack.streamUrl,
+            coverUrl: externalTrack.albumArtUrl,
+          },
+        });
+      } catch (error) {
+        throw new NotFoundException(`Track with YouTube ID "${id}" could not be resolved.`);
+      }
+    }
+
+    // 3. Return the stream URL information back to the controller
+    return {
+      trackId: track.id,
+      youtubeId: track.youtubeId,
+      title: track.title,
+      streamUrl: track.audioUrl,
+    };}
+    
+
+    
 }
