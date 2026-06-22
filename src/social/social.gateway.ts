@@ -4,4 +4,7 @@ import { SocialService } from './social.service';
 @WebSocketGateway()
 export class SocialGateway {
   constructor(private readonly socialService: SocialService) {}
+
+
+  //follow friends
 }

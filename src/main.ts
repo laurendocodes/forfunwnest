@@ -15,12 +15,17 @@ async function bootstrap() {
     .addBearerAuth()
     .addTag('users')
     .build();
-  app.enableCors({
-    origin: "*"
-  })
+app.enableCors({
+    origin: '*', 
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
+  app.setGlobalPrefix('api/v1');
+  
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
-
+const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
